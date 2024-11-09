@@ -11,6 +11,8 @@ import sys
 import textwrap
 import configparser
 from bs4 import BeautifulSoup
+import lxml
+print(lxml.__version__) # Check version
 
 app = Flask(__name__)
 
