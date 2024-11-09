@@ -1,17 +1,14 @@
 from flask import Flask, request, jsonify
 import requests
 from urllib.parse import urlparse, parse_qs
-import re
 from newspaper import Article
 import praw
 from youtube_transcript_api import YouTubeTranscriptApi
-import os
-import io
-import sys
 import textwrap
 import configparser
 from bs4 import BeautifulSoup
 import lxml
+import httpx
 print(lxml.__version__) # Check version
 
 app = Flask(__name__)
@@ -20,21 +17,23 @@ app = Flask(__name__)
 config = configparser.ConfigParser()
 config.read('secrets.ini')
 
-# --- Configuration (Move to separate config file or environment variables) ---
-config = configparser.ConfigParser()
-config.read('secrets.ini')  # Make sure secrets.ini exists with correct details
-
 REDDIT_CLIENT_ID = config.get('REDDIT', 'client_id')
 REDDIT_CLIENT_SECRET = config.get('REDDIT', 'client_secret')
 REDDIT_USER_AGENT = config.get('REDDIT', 'user_agent')
 
 def get_redirected_url(url):
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
+    }
     try:
-        response = requests.get(url, allow_redirects=True, timeout=5)
-        return response.url
-    except requests.exceptions.RequestException as e:
-        print(f"Error getting redirected URL: {e}")
+        with httpx.Client(headers=headers, follow_redirects=True, timeout=10) as client:
+            response = client.get(url)
+            response.raise_for_status()
+            return str(response.url)
+    except httpx.RequestError as e:
+        print(f"Error getting redirected URL for {url}: {e}")
         return url
+
 
 def scrape_article(url):
     article = Article(url)
@@ -87,8 +86,10 @@ def scrape_reddit_thread(url):
             "content": content
         }
 
-    except Exception as e:
+    except praw.exceptions.PRAWException as e:  # Catch Reddit-specific errors
         return {"error": f"Error scraping Reddit thread: {e}"}
+    except Exception as e:  # Catch any other unexpected errors
+        return {"error": f"An unexpected error occurred during Reddit scraping: {e}"}
 
 def get_video_id(url):  # Helper function (you might already have this)
     try:
@@ -125,7 +126,7 @@ def get_youtube_title(url):  # New function to get the title using requests and 
         return title
     except requests.exceptions.RequestException as e:
         print(f"Error getting YouTube title: {e}")
-        return None  # returns nothing when failing
+        return "Unable to retrieve title"
 
 def get_youtube_data(url):
     title = get_youtube_title(url)
@@ -150,11 +151,11 @@ def scrape():
 
     try:
         if "reddit.com" in redirected_url:
-            scraped_data = scrape_reddit_thread(redirected_url)
+            scraped_data = scrape_reddit_thread(redirected_url) # Use redirected_url here
         elif "youtube.com" in redirected_url or "youtu.be" in redirected_url:
-            scraped_data = get_youtube_data(redirected_url) # Call get_youtube_data()
+            scraped_data = get_youtube_data(redirected_url) # Use redirected_url here
         else:
-            scraped_data = scrape_article(redirected_url)
+            scraped_data = scrape_article(redirected_url) # Use redirected_url here
 
         if "error" in scraped_data:  # Check for errors from scraping functions
             return jsonify(scraped_data), 500 # Return the error
