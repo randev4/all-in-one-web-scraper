@@ -9,7 +9,6 @@ import configparser
 from bs4 import BeautifulSoup
 import lxml
 import httpx
-print(lxml.__version__) # Check version
 
 app = Flask(__name__)
 
