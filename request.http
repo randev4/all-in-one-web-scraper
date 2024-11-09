@@ -1,0 +1,4 @@
+POST http://127.0.0.1:5000/scrape
+Content-Type: application/x-www-form-urlencoded
+
+url=https://time.com/7173421/what-donald-trump-election-win-means-for-crypto/
