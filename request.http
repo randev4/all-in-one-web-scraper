@@ -1,4 +1,4 @@
-POST https://all-in-one-scraper.vercel.app/scrape
+POST https://all-in-one-web-scraper.onrender.com/scrape
 Content-Type: application/x-www-form-urlencoded
 
-url=https://youtu.be/jLRnuVHwHKk?si=Ve6CwGyphQ8vsk-d
+url=https://time.com/7173421/what-donald-trump-election-win-means-for-crypto/

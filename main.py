@@ -141,31 +141,38 @@ def get_youtube_data(url):
 
 @app.route('/scrape', methods=['POST'])
 def scrape():
-    url = request.form.get('url')
-    if not url:
-        return jsonify({'error': 'URL is required'}), 400
-
-    redirected_url = get_redirected_url(url)
-
     try:
-        if "reddit.com" in redirected_url:
-            scraped_data = scrape_reddit_thread(redirected_url) # Use redirected_url here
-        elif "youtube.com" in redirected_url or "youtu.be" in redirected_url:
-            scraped_data = get_youtube_data(redirected_url) # Use redirected_url here
+        # Handle both form-encoded and JSON data
+        if request.content_type == 'application/json':
+            data = request.get_json()
+            url = data.get('url')
+        elif request.content_type == 'application/x-www-form-urlencoded':
+            url = request.form.get('url')
         else:
-            scraped_data = scrape_article(redirected_url) # Use redirected_url here
+            return jsonify({'error': 'Unsupported content type. Use application/json or application/x-www-form-urlencoded'}), 415  # 415: Unsupported Media Type
 
-        if "error" in scraped_data:  # Check for errors from scraping functions
-            return jsonify(scraped_data), 500 # Return the error
+        if not url:
+            return jsonify({'error': 'URL is required'}), 400
 
-        # Extract title, url, content (Handles dict and string cases)
-        title = scraped_data.get("title", "Scraped Content") # Use .get() for dicts
-        content = scraped_data.get("content", "") # Default to empty string if no content
+        redirected_url = get_redirected_url(url)
+
+        if "reddit.com" in redirected_url:
+            scraped_data = scrape_reddit_thread(redirected_url)
+        elif "youtube.com" in redirected_url or "youtu.be" in redirected_url:
+            scraped_data = get_youtube_data(redirected_url)
+        else:
+            scraped_data = scrape_article(redirected_url)
+
+        if "error" in scraped_data:
+            return jsonify(scraped_data), 500  # Return specific error
+
+        title = scraped_data.get("title", "Scraped Content")
+        content = scraped_data.get("content", "")
 
         return jsonify({'title': title, 'url': redirected_url, 'content': content.strip()})
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500  # Handle other potential errors
+        return jsonify({'error': str(e)}), 500
 
 
 if __name__ == '__main__':
