@@ -5,20 +5,19 @@ from newspaper import Article
 import praw
 from youtube_transcript_api import YouTubeTranscriptApi
 import textwrap
-import configparser
 from bs4 import BeautifulSoup
-import lxml
 import httpx
+import os
 
 app = Flask(__name__)
 
-# --- Configuration File Handling ---
-config = configparser.ConfigParser()
-config.read('secrets.ini')
+REDDIT_CLIENT_ID = os.environ.get('REDDIT_CLIENT_ID')
+REDDIT_CLIENT_SECRET = os.environ.get('REDDIT_CLIENT_SECRET')
+REDDIT_USER_AGENT = os.environ.get('REDDIT_USER_AGENT')
 
-REDDIT_CLIENT_ID = config.get('REDDIT', 'client_id')
-REDDIT_CLIENT_SECRET = config.get('REDDIT', 'client_secret')
-REDDIT_USER_AGENT = config.get('REDDIT', 'user_agent')
+
+if not all([REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET, REDDIT_USER_AGENT]):
+    raise ValueError("Missing Reddit environment variables.")  # Or handle differently
 
 def get_redirected_url(url):
     headers = {
